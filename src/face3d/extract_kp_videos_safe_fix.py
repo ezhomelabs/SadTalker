@@ -70,7 +70,7 @@ class KeypointExtractor():
                     with torch.no_grad():
                         # face detection -> face alignment.
                         img = np.array(images)
-                        bboxes = self.det_net.detect_faces(images, 0.90)
+                        bboxes = self.det_net.detect_faces(images, 0.97)
                         
                         if len(bboxes) == 0:
                             print('No face detected in this image')
@@ -79,6 +79,15 @@ class KeypointExtractor():
                             break
                         
                         bboxes = bboxes[0]
+                        """
+                        img = img[int(bboxes[1]):int(bboxes[3]), int(bboxes[0]):int(bboxes[2]), :]
+
+                        keypoints = landmark_98_to_68(self.detector.get_landmarks(img)) # [0]
+
+                        #### keypoints to the original location
+                        keypoints[:,0] += int(bboxes[0])
+                        keypoints[:,1] += int(bboxes[1])
+                        """
                         
                         x1, y1, x2, y2 = int(bboxes[0]), int(bboxes[1]), int(bboxes[2]), int(bboxes[3])
                         if x1 >= x2 or y1 >= y2:
@@ -86,21 +95,19 @@ class KeypointExtractor():
                             shape = [68, 2]
                             keypoints = -1. * np.ones(shape)
                             break
-                        
-                        
-                        img = img[int(bboxes[1]):int(bboxes[3]), int(bboxes[0]):int(bboxes[2]), :]
-                        
+
+                        img = img[y1:y2, x1:x2, :]
+
                         if img.size == 0:
                             print('Cropped image is empty')
                             shape = [68, 2]
                             keypoints = -1. * np.ones(shape)
                             break
 
-                        keypoints = landmark_98_to_68(self.detector.get_landmarks(img)) # [0]
+                        keypoints = landmark_98_to_68(self.detector.get_landmarks(img))
 
-                        #### keypoints to the original location
-                        keypoints[:,0] += int(bboxes[0])
-                        keypoints[:,1] += int(bboxes[1])
+                        keypoints[:, 0] += x1
+                        keypoints[:, 1] += y1
 
                         break
                 except RuntimeError as e:
